@@ -1,13 +1,13 @@
 #include <Arduino.h>
-#include <SoftwareSerial.h>
+#include <BluetoothSerial.h>
 #include "scheduler.h"
 #include "controller.h"
-#include "hw_servo.h"
+#include "dummy_servo.h"
 #include "hw_led.h"
 
-#define PIN_LED_A 10
-#define PIN_LED_B 11
-#define PIN_LED_C 12
+#define PIN_LED_A 32
+#define PIN_LED_B 33
+#define PIN_LED_C 25
 #define PIN_SERVO 6
 #define PIN_BT_TX 7
 #define PIN_BT_RX 8
@@ -19,10 +19,10 @@ smartdumpster::Controller *controller;
 smartdumpster::Servo *servo;
 smartdumpster::Led *leds[3];
 
-unsigned long time = 0;
+unsigned long loopTime = 0;
 unsigned long diff;
 char btReadBuf[3];
-SoftwareSerial btSerial(PIN_BT_TX, PIN_BT_RX);
+BluetoothSerial btSerial;
 
 enum BtCommands {
     CMD_HELLO    = 'H',
@@ -41,8 +41,9 @@ smartdumpster::TrashType trashTypeLut[4] = {
 void setup()
 {
     Serial.begin(9600);
+    btSerial.begin("smartdumpster-esp");
 
-    servo = new smartdumpster::HWServo(PIN_SERVO);
+    servo = new smartdumpster::DummyServo();
     leds[0] = new smartdumpster::HWLed(PIN_LED_A);
     leds[1] = new smartdumpster::HWLed(PIN_LED_B);
     leds[2] = new smartdumpster::HWLed(PIN_LED_C);
@@ -59,23 +60,19 @@ void setup()
 
     scheduler->add(controller, 1000 / TICK_INTERVAL_MS);
     servo->setAngle(servo->getAngleMin());
-
-    btSerial.begin(9600);
-    btSerial.listen();
-
-    delay(2000);
-    btSerial.println("AT+NAMEsmartdumpster01");
-    // btSerial.write("AT+ROLE=0");
 }
 
 void loop()
 {
-    time = millis();
+    loopTime = millis();
 
     int trashType = 0;
 
     if (btSerial.available() >= 2) {
         btSerial.readBytesUntil(CMD_END, btReadBuf, 3);
+
+        Serial.print("Received: ");
+        Serial.println(btReadBuf);
 
         switch(btReadBuf[0]) {
             case CMD_HELLO:
@@ -90,7 +87,7 @@ void loop()
     }
 
     scheduler->schedule();
-    diff = millis() - time;
+    diff = millis() - loopTime;
 
     if (diff < TICK_INTERVAL_MS) {
         delay(TICK_INTERVAL_MS - diff);

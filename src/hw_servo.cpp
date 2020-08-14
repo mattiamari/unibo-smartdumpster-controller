@@ -1,3 +1,5 @@
+#ifdef ARDUINO_UNO
+
 #include "hw_servo.h"
 
 using namespace smartdumpster;
@@ -21,3 +23,5 @@ int HWServo::getAngleMin() {
 int HWServo::getAngleMax() {
     return 130;
 }
+
+#endif

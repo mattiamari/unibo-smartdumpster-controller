@@ -4,7 +4,7 @@
 #include "task.h"
 #include "servo.h"
 #include "led.h"
-#include <SoftwareSerial.h>
+#include <BluetoothSerial.h>
 
 #define T_DELIVER_SEC 10
 #define TRASH_TYPES_COUNT 3
@@ -27,7 +27,7 @@ namespace smartdumpster {
     class Controller : public Task
     {
     public:
-        Controller(Servo *servo, Led *leds[TRASH_TYPES_COUNT], SoftwareSerial *btSerial);
+        Controller(Servo *servo, Led *leds[TRASH_TYPES_COUNT], BluetoothSerial *btSerial);
         void openLid(TrashType type);
         void moreTime();
         void step();
@@ -37,7 +37,7 @@ namespace smartdumpster {
     private:
         Servo *servo;
         Led **leds;
-        SoftwareSerial *btSerial;
+        BluetoothSerial *btSerial;
         ControllerState currentState;
         unsigned int timeRemaining;
 

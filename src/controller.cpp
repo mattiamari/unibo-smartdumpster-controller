@@ -3,7 +3,7 @@
 
 using namespace smartdumpster;
 
-Controller::Controller(Servo *servo, Led *leds[TRASH_TYPES_COUNT], SoftwareSerial *btSerial) {
+Controller::Controller(Servo *servo, Led *leds[TRASH_TYPES_COUNT], BluetoothSerial *btSerial) {
     this->servo = servo;
     this->leds = leds;
     this->btSerial = btSerial;
