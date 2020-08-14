@@ -77,6 +77,7 @@ void loop()
         switch(btReadBuf[0]) {
             case CMD_HELLO:
                 btSerial.println(dumpsterID);
+                break;
             case CMD_OPEN:
                 trashType = btReadBuf[1] - '0';
                 if (trashType < 1 || trashType > 3) break;
