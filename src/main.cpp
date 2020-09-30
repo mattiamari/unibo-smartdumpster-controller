@@ -1,7 +1,9 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
+
 #include "scheduler.h"
 #include "controller.h"
+#include "serial_reader.h"
 #include "hw_servo.h"
 #include "hw_led.h"
 
@@ -12,31 +14,15 @@
 #define PIN_BT_TX 7
 #define PIN_BT_RX 8
 
-const char *dumpsterID = "162db43a-f153-4efd-8671-a0ca8c921031";
-
 smartdumpster::Scheduler *scheduler;
 smartdumpster::Controller *controller;
+smartdumpster::SerialReader *serialReader;
 smartdumpster::Servo *servo;
 smartdumpster::Led *leds[3];
 
 unsigned long time = 0;
 unsigned long diff;
-char btReadBuf[3];
 SoftwareSerial btSerial(PIN_BT_TX, PIN_BT_RX);
-
-enum BtCommands {
-    CMD_HELLO    = 'H',
-    CMD_OPEN     = 'O',
-    CMD_POSTPONE = 'P',
-    CMD_END      = 'E'
-};
-
-smartdumpster::TrashType trashTypeLut[4] = {
-    smartdumpster::TRASH_NONE,
-    smartdumpster::TRASH_PLASTIC,
-    smartdumpster::TRASH_PAPER,
-    smartdumpster::TRASH_UNSORTED
-};
 
 void setup()
 {
@@ -56,8 +42,10 @@ void setup()
 
     scheduler = new smartdumpster::Scheduler();
     controller = new smartdumpster::Controller(servo, leds, &btSerial);
+    serialReader = new smartdumpster::SerialReader(&btSerial, controller);
 
-    scheduler->add(controller, 1000 / TICK_INTERVAL_MS);
+    scheduler->add(controller, 1000 / TICK_INTERVAL_MS); // run every 1 second
+    scheduler->add(serialReader, 1); // run on every tick
     servo->setAngle(servo->getAngleMin());
 
     btSerial.begin(9600);
@@ -71,24 +59,6 @@ void setup()
 void loop()
 {
     time = millis();
-
-    int trashType = 0;
-
-    if (btSerial.available() >= 2) {
-        btSerial.readBytesUntil(CMD_END, btReadBuf, 3);
-
-        switch(btReadBuf[0]) {
-            case CMD_HELLO:
-                btSerial.println(dumpsterID);
-                break;
-            case CMD_OPEN:
-                trashType = btReadBuf[1] - '0';
-                if (trashType < 1 || trashType > 3) break;
-                controller->openLid(trashTypeLut[trashType]);
-                break;
-            case CMD_POSTPONE: controller->moreTime(); break;
-        }
-    }
 
     scheduler->schedule();
     diff = millis() - time;
